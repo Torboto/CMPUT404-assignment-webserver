@@ -1,7 +1,8 @@
 import SocketServer
+import os
 # coding: utf-8
 
-# Copyright 2013 Abram Hindle, Eddie Antonio Santos
+# Copyright 2013 Abram Hindle, Eddie Antonio Santos, Erin Torbiak
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,18 +22,43 @@ import SocketServer
 # Foundation; All Rights Reserved
 #
 # http://docs.python.org/2/library/socketserver.html
-#
-# run: python freetests.py
-
-# try: curl -v -X GET http://127.0.0.1:8080/
 
 
 class MyWebServer(SocketServer.BaseRequestHandler):
+    def return_404(self):
+        self.request.sendall("HTTP/1.1 404 Not Found\r\n\r\n404: Page Not Found")
+        return
     
+    def bad_path(self, root, reqPath):
+        absRoot = os.path.abspath(root)
+        absReqPath = os.path.abspath(reqPath)
+        return not absReqPath.startswith(absRoot)
+
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print ("Got a request of: %s\n" % self.data)
-        self.request.sendall("OK")
+        
+        # Parse input, remove leading slash
+        lines = self.data.split("\r\n")
+        firstLine = lines[0].split()
+        root = "./www"
+        path = os.path.join(root, firstLine[1][1:])
+
+        # If directory given, return index
+        if os.path.isdir(path):
+            path = os.path.join(path, "index.html")
+
+        if not os.path.exists(path) or self.bad_path(root, path):
+            self.return_404()
+            return
+
+        with open(path) as f:
+            content = f.read()
+        
+        if path.endswith('.css'):
+            response = "HTTP/1.1 200 OK\r\nContent-Type:text/css\r\n\r\n%s" % content
+        elif path.endswith('.html'):
+            response = "HTTP/1.1 200 OK\r\nContent-Type:text/html\r\n\r\n%s" % content 
+        self.request.sendall(response)
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
