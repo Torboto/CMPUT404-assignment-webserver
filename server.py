@@ -48,19 +48,19 @@ class MyWebServer(SocketServer.BaseRequestHandler):
         self.request.sendall("HTTP/1.1 404 Not Found\r\n\r\n404: Page Not Found")
         return
     
-    def bad_path(self, root, reqPath):
-        absRoot = os.path.abspath(root)
-        absReqPath = os.path.abspath(reqPath)
-        return not absReqPath.startswith(absRoot)
+    def bad_path(self, root, reqpath):
+        abs_root = os.path.abspath(root)
+        abs_reqpath = os.path.abspath(reqpath)
+        return not abs_reqpath.startswith(abs_root)
 
     def handle(self):
         self.data = self.request.recv(1024).strip()
         
         # Parse input, remove leading slash
         lines = self.data.split("\r\n")
-        firstLine = lines[0].split()
+        first_line = lines[0].split()
         root = "./www"
-        path = os.path.join(root, firstLine[1][1:])
+        path = os.path.join(root, first_line[1][1:])
 
         # If directory given, return index
         if os.path.isdir(path):
